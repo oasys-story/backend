@@ -76,4 +76,12 @@ public class AuthController {
         
         return ResponseEntity.ok(new LoginResponse(token, userResponse));
     }
+
+
+
+    /* 로그아웃 */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok().body("로그아웃 되었습니다.");
+    }
 } 

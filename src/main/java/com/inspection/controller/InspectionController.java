@@ -44,7 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/inspections")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:3001")
 @RequiredArgsConstructor
 @Slf4j
 public class InspectionController {
