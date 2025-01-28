@@ -78,4 +78,11 @@ public class CompanyService {
         company.setNotes(dto.getNotes());
         company.setActive(true);  // 새로 생성시 기본값 true
     }
+
+    @Transactional
+    public void deleteCompany(Long companyId) {
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new RuntimeException("업체를 찾을 수 없습니다. ID: " + companyId));
+        companyRepository.delete(company);
+    }
 } 

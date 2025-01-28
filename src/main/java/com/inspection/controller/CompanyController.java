@@ -40,4 +40,10 @@ public class CompanyController {
         CompanyDTO updatedCompany = companyService.updateCompany(companyId, companyDTO);
         return ResponseEntity.ok(updatedCompany);
     }
+
+    @DeleteMapping("/{companyId}")
+    public ResponseEntity<?> deleteCompany(@PathVariable Long companyId) {
+        companyService.deleteCompany(companyId);
+        return ResponseEntity.ok().build();
+    }
 } 

@@ -101,4 +101,12 @@ public class UserService implements UserDetailsService {
         
         return userRepository.save(user);
     }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. ID: " + userId));
+        userRepository.delete(user);
+    }
+
 } 
