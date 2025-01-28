@@ -17,18 +17,27 @@ import com.inspection.dto.InspectionDetailDTO;
 import com.inspection.dto.InspectionListDTO;
 import com.inspection.entity.Company;
 import com.inspection.entity.Inspection;
+import com.inspection.entity.User;
 import com.inspection.exception.InspectionNotFoundException;
 import com.inspection.repository.CompanyRepository;
 import com.inspection.repository.InspectionRepository;
+import com.inspection.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InspectionService {
     
     private final InspectionRepository inspectionRepository;
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
     
     @Transactional
     public Long createInspection(InspectionCreateDTO dto) {
@@ -37,9 +46,13 @@ public class InspectionService {
             Company company = companyRepository.findById(dto.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found"));
 
+            User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
             // Inspection 엔티티 생성
             Inspection inspection = new Inspection();
             inspection.setCompany(company);
+            inspection.setUser(user);
             inspection.setInspectionDate(dto.getInspectionDate());
             inspection.setManagerName(dto.getManagerName());
             
@@ -91,11 +104,11 @@ public class InspectionService {
             inspection = inspectionRepository.save(inspection);
             return inspection.getInspectionId();
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("JSON 처리 중 오류 발생: " + e.getMessage());
+            throw new RuntimeException("JSON 처리 중 오류 발생", e);
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("잘못된 데이터 형식: " + e.getMessage());
-        } catch (Exception e) {
-            throw new RuntimeException("점검 데이터 저장 중 오류 발생: " + e.getMessage());
+            throw new RuntimeException("잘못된 데이터 입력", e);
+        } catch (RuntimeException e) {
+            throw e;
         }
     }
     
@@ -111,10 +124,18 @@ public class InspectionService {
             detailDTO.setInspectionId(inspection.getInspectionId());
             
             // Company 정보 매핑
-            Company company = inspection.getCompany(); // Company 엔티티 가져오기
+            Company company = inspection.getCompany();
             detailDTO.setCompanyId(company.getCompanyId());
-            detailDTO.setCompanyName(company.getCompanyName()); // Company 엔티티에서 이름 가져오기
+            detailDTO.setCompanyName(company.getCompanyName());
             
+            // User(작성자) 정보 매핑
+            User user = inspection.getUser();
+            if (user != null) {
+                detailDTO.setUserId(user.getUserId());
+                detailDTO.setUsername(user.getUsername());  // 또는 user.getName() 등 표시하고 싶은 사용자 정보
+            }
+            
+            // 나머지 필드들 매핑
             detailDTO.setInspectionDate(inspection.getInspectionDate());
             detailDTO.setManagerName(inspection.getManagerName());
             
@@ -166,7 +187,11 @@ public class InspectionService {
             
             return detailDTO;
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("이미지 데이터 처리 중 오류 발생", e);
+            throw new RuntimeException("JSON 데이터 처리 중 오류 발생", e);
+        } catch (InspectionNotFoundException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw new RuntimeException("점검 상세 정보 조회 중 오류 발생", e);
         }
     }
     
@@ -221,5 +246,107 @@ public class InspectionService {
         inspectionRepository.save(inspection);
         
         return getInspectionDetail(inspectionId);
+    }
+
+    @Transactional
+    public InspectionDetailDTO updateInspection(Long id, InspectionCreateDTO updateData) {
+        try {
+            Inspection inspection = inspectionRepository.findById(id)
+                .orElseThrow(() -> new InspectionNotFoundException(id));
+
+            // Company 정보 업데이트
+            if (updateData.getCompanyId() != null) {
+                Company company = companyRepository.findById(updateData.getCompanyId())
+                    .orElseThrow(() -> new RuntimeException("Company not found"));
+                inspection.setCompany(company);
+            }
+
+            // 기본 정보 업데이트
+            inspection.setInspectionDate(updateData.getInspectionDate());
+            inspection.setManagerName(updateData.getManagerName());
+
+            // 기본사항 업데이트
+            inspection.setFaucetVoltage(updateData.getFaucetVoltage());
+            inspection.setFaucetCapacity(updateData.getFaucetCapacity());
+            inspection.setGenerationVoltage(updateData.getGenerationVoltage());
+            inspection.setGenerationCapacity(updateData.getGenerationCapacity());
+            inspection.setSolarCapacity(updateData.getSolarCapacity());
+            inspection.setContractCapacity(updateData.getContractCapacity());
+            inspection.setInspectionType(updateData.getInspectionType());
+            inspection.setInspectionCount(updateData.getInspectionCount());
+
+            // 점검내역 업데이트
+            inspection.setWiringInlet(updateData.getWiringInlet());
+            inspection.setDistributionPanel(updateData.getDistributionPanel());
+            inspection.setMoldedCaseBreaker(updateData.getMoldedCaseBreaker());
+            inspection.setEarthLeakageBreaker(updateData.getEarthLeakageBreaker());
+            inspection.setSwitchGear(updateData.getSwitchGear());
+            inspection.setWiring(updateData.getWiring());
+            inspection.setMotor(updateData.getMotor());
+            inspection.setHeatingEquipment(updateData.getHeatingEquipment());
+            inspection.setWelder(updateData.getWelder());
+            inspection.setCapacitor(updateData.getCapacitor());
+            inspection.setLighting(updateData.getLighting());
+            inspection.setGrounding(updateData.getGrounding());
+            inspection.setInternalWiring(updateData.getInternalWiring());
+            inspection.setGenerator(updateData.getGenerator());
+            inspection.setOtherEquipment(updateData.getOtherEquipment());
+
+            // 측정개소 업데이트
+            if (updateData.getMeasurements() != null) {
+                String measurementsJson = new ObjectMapper().writeValueAsString(updateData.getMeasurements());
+                inspection.setMeasurements(measurementsJson);
+            }
+
+            // 특이사항 업데이트
+            inspection.setSpecialNotes(updateData.getSpecialNotes());
+
+            // 서명 정보 업데이트 (기존 서명은 유지)
+            if (updateData.getSignature() != null) {
+                inspection.setSignature(updateData.getSignature());
+            }
+
+            // 이미지 업데이트
+            if (updateData.getImages() != null) {
+                inspection.setImages(new ObjectMapper().writeValueAsString(updateData.getImages()));
+            }
+
+            Inspection updatedInspection = inspectionRepository.save(inspection);
+            return getInspectionDetail(updatedInspection.getInspectionId());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("이미지 데이터 처리 중 오류 발생", e);
+        }
+    }
+
+    @Transactional
+    public void deleteInspection(Long id) {
+        try {
+            Inspection inspection = inspectionRepository.findById(id)
+                .orElseThrow(() -> new InspectionNotFoundException(id));
+            
+            // 이미지 파일 삭제
+            if (inspection.getImages() != null && !inspection.getImages().isEmpty()) {
+                List<String> imagesList = new ObjectMapper().readValue(
+                    inspection.getImages(),
+                    new TypeReference<List<String>>() {}
+                );
+                for (String image : imagesList) {
+                    deleteImage(image);
+                }
+            }
+            
+            inspectionRepository.delete(inspection);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("이미지 데이터 처리 중 오류 발생", e);
+        }
+    }
+
+    private void deleteImage(String imageName) {
+        try {
+            Path imagePath = Paths.get("/root/inspection-app/backend/uploads/images").resolve(imageName);
+            Files.deleteIfExists(imagePath);
+        } catch (IOException e) {
+            log.error("이미지 파일 삭제 실패: {}", e.getMessage());
+        }
     }
 } 

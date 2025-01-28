@@ -19,8 +19,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +42,8 @@ import com.inspection.dto.InspectionListDTO;
 import com.inspection.exception.InspectionNotFoundException;
 import com.inspection.service.InspectionService;
 import com.inspection.service.PdfService;
+import com.inspection.service.UserService;
+import com.inspection.entity.User;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,18 +56,22 @@ import lombok.extern.slf4j.Slf4j;
 public class InspectionController {
     private final InspectionService inspectionService;
     private final PdfService pdfService;
-    // private final SmsService smsService;
+    private final UserService userService;
     
     /* 점검 내용 저장 */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createInspection(
         @RequestPart("inspectionData") String inspectionDataStr,
-        @RequestPart(value = "images", required = false) List<MultipartFile> images
+        @RequestPart(value = "images", required = false) List<MultipartFile> images,
+        @AuthenticationPrincipal UserDetails userDetails
     ) throws IOException {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            mapper.registerModule(new JavaTimeModule()); // LocalDate 처리를 위해 필요
+            mapper.registerModule(new JavaTimeModule());
             InspectionCreateDTO inspectionData = mapper.readValue(inspectionDataStr, InspectionCreateDTO.class);
+            
+            User user = userService.getCurrentUser(userDetails.getUsername());
+            inspectionData.setUserId(user.getUserId());
             
             // 이미지 파일 저장 및 처리
             List<String> savedImageNames = new ArrayList<>();
@@ -83,10 +93,14 @@ public class InspectionController {
             inspectionData.setImages(savedImageNames);
             Long inspectionId = inspectionService.createInspection(inspectionData);
             return ResponseEntity.ok(inspectionId);
-        } catch (IOException | IllegalArgumentException e) {
-            log.error("점검 데이터 저장 실패: {}", e.getMessage(), e);
+        } catch (IOException e) {
+            log.error("파일 처리 중 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("점검 데이터 저장에 실패했습니다: " + e.getMessage());
+                .body("파일 처리 중 오류가 발생했습니다: " + e.getMessage());
+        } catch (InspectionNotFoundException e) {
+            log.error("점검 기록을 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
         } catch (RuntimeException e) {
             log.error("점검 데이터 저장 중 서버 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -169,6 +183,71 @@ public class InspectionController {
                 .body(resource);
         } catch (Exception e) {
             throw new RuntimeException("PDF 다운로드 중 오류 발생", e);
+        }
+    }
+
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateInspection(
+        @PathVariable Long id,
+        @RequestPart("inspectionData") String inspectionDataStr,
+        @RequestPart(value = "images", required = false) List<MultipartFile> newImages,
+        @RequestPart(value = "existingImages", required = false) List<String> existingImages
+    ) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JavaTimeModule());
+            InspectionCreateDTO inspectionData = mapper.readValue(inspectionDataStr, InspectionCreateDTO.class);
+            
+            // 새 이미지 파일 저장 및 처리
+            List<String> savedImageNames = new ArrayList<>();
+            if (newImages != null && !newImages.isEmpty()) {
+                Path uploadPath = Paths.get("/root/inspection-app/backend/uploads/images");
+                if (!Files.exists(uploadPath)) {
+                    Files.createDirectories(uploadPath);
+                }
+                
+                for (MultipartFile image : newImages) {
+                    String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
+                    Path path = uploadPath.resolve(fileName);
+                    Files.copy(image.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+                    savedImageNames.add(fileName);
+                }
+            }
+            
+            // 기존 이미지 목록과 새 이미지 목록 합치기
+            if (existingImages != null) {
+                savedImageNames.addAll(existingImages);
+            }
+            
+            inspectionData.setImages(savedImageNames);
+            InspectionDetailDTO updatedInspection = inspectionService.updateInspection(id, inspectionData);
+            return ResponseEntity.ok(updatedInspection);
+        } catch (IOException e) {
+            log.error("파일 처리 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("파일 처리 중 오류가 발생했습니다: " + e.getMessage());
+        } catch (InspectionNotFoundException e) {
+            log.error("점검 기록을 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(e.getMessage());
+        } catch (RuntimeException e) {
+            log.error("점검 데이터 수정 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("점검 데이터 수정에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")  // 관리자만 삭제 가능
+    public ResponseEntity<?> deleteInspection(@PathVariable Long id) {
+        try {
+            inspectionService.deleteInspection(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("점검 데이터 삭제 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("점검 데이터 삭제에 실패했습니다: " + e.getMessage());
         }
     }
 } 
