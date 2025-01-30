@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
+import java.util.LinkedHashSet;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -191,18 +193,24 @@ public class InspectionController {
     public ResponseEntity<?> updateInspection(
         @PathVariable Long id,
         @RequestPart("inspectionData") String inspectionDataStr,
-        @RequestPart(value = "images", required = false) List<MultipartFile> newImages,
-        @RequestPart(value = "existingImages", required = false) List<String> existingImages
+        @RequestPart(value = "images", required = false) List<MultipartFile> newImages
     ) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JavaTimeModule());
             InspectionCreateDTO inspectionData = mapper.readValue(inspectionDataStr, InspectionCreateDTO.class);
             
-            // 새 이미지 파일 저장 및 처리
-            List<String> savedImageNames = new ArrayList<>();
+            // LinkedHashSet을 사용하여 중복 제거하면서 순서 유지
+            Set<String> uniqueImages = new LinkedHashSet<>();
+            
+            // 기존 이미지 처리
+            if (inspectionData.getImages() != null) {
+                uniqueImages.addAll(inspectionData.getImages());
+            }
+            
+            // 새 이미지 처리
             if (newImages != null && !newImages.isEmpty()) {
-                Path uploadPath = Paths.get("/root/inspection-app/backend/uploads/images");
+                Path uploadPath = Paths.get("uploads/images");
                 if (!Files.exists(uploadPath)) {
                     Files.createDirectories(uploadPath);
                 }
@@ -210,17 +218,21 @@ public class InspectionController {
                 for (MultipartFile image : newImages) {
                     String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
                     Path path = uploadPath.resolve(fileName);
-                    Files.copy(image.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
-                    savedImageNames.add(fileName);
+                    
+                    // 파일이 이미 존재하는지 확인
+                    if (!Files.exists(path)) {
+                        Files.copy(image.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+                        uniqueImages.add(fileName);
+                    }
                 }
             }
             
-            // 기존 이미지 목록과 새 이미지 목록 합치기
-            if (existingImages != null) {
-                savedImageNames.addAll(existingImages);
-            }
+            // 중복이 제거된 이미지 목록을 다시 리스트로 변환
+            inspectionData.setImages(new ArrayList<>(uniqueImages));
             
-            inspectionData.setImages(savedImageNames);
+            // 디버깅을 위한 로그
+            log.info("Updating inspection {} with images: {}", id, uniqueImages);
+            
             InspectionDetailDTO updatedInspection = inspectionService.updateInspection(id, inspectionData);
             return ResponseEntity.ok(updatedInspection);
         } catch (IOException e) {
