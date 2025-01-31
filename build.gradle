@@ -43,4 +43,6 @@ dependencies {
 
     //민감정보 .env
     implementation 'io.github.cdimascio:dotenv-java:2.3.2'
+
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
