@@ -66,6 +66,8 @@ public class SecurityConfig {
                     "/api/stt/**"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                .requestMatchers("/api/user/**").hasRole("USER")
                 .requestMatchers("/api/companies/**").authenticated()
                 .requestMatchers("/api/users/**").authenticated()
                 .requestMatchers("/api/inspections/**").authenticated()
