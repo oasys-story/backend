@@ -73,6 +73,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/inspections/**").authenticated()
                 .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/api/chat/**").permitAll()
+                .requestMatchers("/api/chat/qa/**").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
