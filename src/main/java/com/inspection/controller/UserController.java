@@ -25,18 +25,20 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable Long userId) {
         User user = userService.getUserById(userId);
-        return ResponseEntity.ok(new UserResponseDTO(user));
+        UserResponseDTO userDTO = userService.getCurrentUserDTO(user.getUsername());
+        return ResponseEntity.ok(userDTO);
     }
 
     @GetMapping
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+        List<UserResponseDTO> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return ResponseEntity.ok().build();
     }
@@ -47,7 +49,8 @@ public class UserController {
         @RequestBody UserUpdateDTO userUpdateDTO
     ) {
         User updatedUser = userService.updateUser(userId, userUpdateDTO);
-        return ResponseEntity.ok(new UserResponseDTO(updatedUser));
+        UserResponseDTO userDTO = userService.getCurrentUserDTO(updatedUser.getUsername());
+        return ResponseEntity.ok(userDTO);
     }
 
     

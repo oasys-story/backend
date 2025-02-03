@@ -39,14 +39,15 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<UserResponseDTO> signup(@RequestBody UserCreateDTO userCreateDTO) {
         User savedUser = userService.createUser(userCreateDTO);
-        return ResponseEntity.ok(new UserResponseDTO(savedUser));
+        UserResponseDTO responseDTO = userService.getCurrentUserDTO(savedUser.getUsername());
+        return ResponseEntity.ok(responseDTO);
     }
 
     /* 현재 사용자 정보 조회 */
     @GetMapping("/me")
     public ResponseEntity<UserResponseDTO> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userService.getCurrentUser(userDetails.getUsername());
-        return ResponseEntity.ok(new UserResponseDTO(user));
+        UserResponseDTO userDTO = userService.getCurrentUserDTO(userDetails.getUsername());
+        return ResponseEntity.ok(userDTO);
     }
 
     /* 아이디 중복 체크 */
@@ -71,8 +72,7 @@ public class AuthController {
         );
 
         String token = tokenProvider.generateToken(authentication);
-        User user = userService.getCurrentUser(loginRequest.getUsername());
-        UserResponseDTO userResponse = new UserResponseDTO(user);
+        UserResponseDTO userResponse = userService.getCurrentUserDTO(loginRequest.getUsername());
         
         return ResponseEntity.ok(new LoginResponse(token, userResponse));
     }
