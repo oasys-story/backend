@@ -3,6 +3,8 @@ package com.inspection.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -17,6 +19,7 @@ import com.inspection.entity.Company;
 import com.inspection.entity.User;
 import com.inspection.repository.CompanyRepository;
 import com.inspection.repository.UserRepository;
+import com.inspection.util.AESEncryption;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +30,8 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CompanyRepository companyRepository;
+    private final AESEncryption aesEncryption;
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -43,8 +48,20 @@ public class UserService implements UserDetailsService {
     @Transactional
     public User createUser(UserCreateDTO userCreateDTO) {
         User user = userCreateDTO.toEntity();
+        
+        // 비밀번호 암호화
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
+        
+        // 이메일 암호화
+        if (user.getEmail() != null) {
+            user.setEmail(aesEncryption.encrypt(user.getEmail()));
+        }
+        
+        // 전화번호 암호화
+        if (user.getPhoneNumber() != null) {
+            user.setPhoneNumber(aesEncryption.encrypt(user.getPhoneNumber()));
+        }
+        
         if (userCreateDTO.getCompanyId() != null) {
             Company company = companyRepository.findById(userCreateDTO.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 회사입니다."));
@@ -74,7 +91,33 @@ public class UserService implements UserDetailsService {
     @Transactional(readOnly = true)
     public List<UserResponseDTO> getAllUsers() {
         return userRepository.findAll().stream()
-            .map(UserResponseDTO::new)
+            .map(user -> {
+                UserResponseDTO dto = new UserResponseDTO(user);
+                try {
+                    // 이메일 복호화
+                    if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                        try {
+                            dto.setEmail(aesEncryption.decrypt(user.getEmail()));
+                        } catch (Exception e) {
+                            log.warn("이메일 복호화 실패: {}", user.getEmail());
+                            dto.setEmail(user.getEmail());  // 실패시 원본값 사용
+                        }
+                    }
+                    
+                    // 전화번호 복호화
+                    if (user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
+                        try {
+                            dto.setPhoneNumber(aesEncryption.decrypt(user.getPhoneNumber()));
+                        } catch (Exception e) {
+                            log.warn("전화번호 복호화 실패: {}", user.getPhoneNumber());
+                            dto.setPhoneNumber(user.getPhoneNumber());  // 실패시 원본값 사용
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("사용자 정보 복호화 중 오류: {}", e.getMessage());
+                }
+                return dto;
+            })
             .collect(Collectors.toList());
     }
 
@@ -88,8 +131,17 @@ public class UserService implements UserDetailsService {
         User user = getUserById(userId);
         
         user.setFullName(userUpdateDTO.getFullName());
-        user.setEmail(userUpdateDTO.getEmail());
-        user.setPhoneNumber(userUpdateDTO.getPhoneNumber());
+        
+        // 이메일 암호화
+        if (userUpdateDTO.getEmail() != null) {
+            user.setEmail(aesEncryption.encrypt(userUpdateDTO.getEmail()));
+        }
+        
+        // 전화번호 암호화
+        if (userUpdateDTO.getPhoneNumber() != null) {
+            user.setPhoneNumber(aesEncryption.encrypt(userUpdateDTO.getPhoneNumber()));
+        }
+        
         user.setRole(userUpdateDTO.getRole());
         user.setActive(userUpdateDTO.isActive());
         
@@ -101,4 +153,28 @@ public class UserService implements UserDetailsService {
         
         return userRepository.save(user);
     }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. ID: " + userId));
+        userRepository.delete(user);
+    }
+
+    // 사용자 정보 조회 시 복호화
+    public UserResponseDTO getCurrentUserDTO(String username) {
+        User user = getCurrentUser(username);
+        UserResponseDTO dto = new UserResponseDTO(user);
+        
+        // 이메일과 전화번호 복호화
+        if (user.getEmail() != null) {
+            dto.setEmail(aesEncryption.decrypt(user.getEmail()));
+        }
+        if (user.getPhoneNumber() != null) {
+            dto.setPhoneNumber(aesEncryption.decrypt(user.getPhoneNumber()));
+        }
+        
+        return dto;
+    }
+
 } 

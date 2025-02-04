@@ -27,6 +27,10 @@ public class Inspection {
     private LocalDate inspectionDate;   // 점검일자
     private String managerName;         // 관리사 이름
     
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;    // 점검 작성자
+    
     // 기본사항 필드들
     private Integer faucetVoltage;              // 수전전압(V)
     private Integer faucetCapacity;             // 수전용량(kW)

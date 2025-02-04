@@ -11,6 +11,7 @@ import lombok.Setter;
 public class InspectionCreateDTO {
     // 기본 정보
     private Long companyId;          // facilityName 대신 companyId로 변경
+    private Long userId;            // 작성자 ID 추가
     private LocalDate inspectionDate;
     private String managerName;
     
