@@ -20,10 +20,13 @@ import com.inspection.dto.InquiryDTO;
 import com.inspection.service.InquiryService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/inquiries")
 @RequiredArgsConstructor
+@Slf4j
 public class InquiryController {
     private final InquiryService inquiryService;
     
@@ -35,9 +38,17 @@ public class InquiryController {
             @RequestParam String contactNumber,
             @RequestParam(required = false) List<MultipartFile> images) {
         
-        InquiryDTO createdInquiry = inquiryService.createInquiry(
-            inquiryTitle, inquiryContent, userId, contactNumber, images);
-        return ResponseEntity.ok(createdInquiry);
+        try {
+            log.info("Creating inquiry - Title: {}, UserId: {}", inquiryTitle, userId);
+            InquiryDTO createdInquiry = inquiryService.createInquiry(
+                inquiryTitle, inquiryContent, userId, contactNumber, images);
+            log.info("Successfully created inquiry with id: {}", createdInquiry.getInquiryId());
+            return ResponseEntity.ok(createdInquiry);
+        } catch (Exception e) {
+            log.error("Error creating inquiry: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(null);
+        }
     }
 
     @GetMapping

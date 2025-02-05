@@ -25,11 +25,12 @@ import com.inspection.repository.InquiryRepository;
 import com.inspection.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InquiryService {
-    private static final Logger log = LoggerFactory.getLogger(InquiryService.class);
     private final InquiryRepository inquiryRepository;
     private final UserRepository userRepository;
     private final String uploadDir = "uploads/inquiry_images/";
@@ -38,33 +39,39 @@ public class InquiryService {
     public InquiryDTO createInquiry(String inquiryTitle, String inquiryContent, 
                                    Long userId, String contactNumber, 
                                    List<MultipartFile> images) {
-        // 작성자 정보 조회
-        User writer = userRepository.findById(userId)
-            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        try {
+            log.info("Starting to create inquiry for user: {}", userId);
+            User writer = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
             
-        // 문의사항 엔티티 생성
-        Inquiry inquiry = new Inquiry();
-        inquiry.setInquiryTitle(inquiryTitle);
-        inquiry.setInquiryContent(inquiryContent);
-        inquiry.setWriter(writer);
-        inquiry.setContactNumber(contactNumber);
-        inquiry.setProcessed(false);  // 초기 처리상태는 false
-        
-        // 이미지 처리
-        if (images != null && !images.isEmpty()) {
-            List<String> imageUrls = new ArrayList<>();
-            for (MultipartFile image : images) {
-                if (!image.isEmpty()) {
-                    String imageUrl = saveImage(image);
-                    imageUrls.add(imageUrl);
+            // 문의사항 엔티티 생성
+            Inquiry inquiry = new Inquiry();
+            inquiry.setInquiryTitle(inquiryTitle);
+            inquiry.setInquiryContent(inquiryContent);
+            inquiry.setWriter(writer);
+            inquiry.setContactNumber(contactNumber);
+            inquiry.setProcessed(false);  // 초기 처리상태는 false
+            
+            // 이미지 처리
+            if (images != null && !images.isEmpty()) {
+                List<String> imageUrls = new ArrayList<>();
+                for (MultipartFile image : images) {
+                    if (!image.isEmpty()) {
+                        String imageUrl = saveImage(image);
+                        imageUrls.add(imageUrl);
+                    }
                 }
+                inquiry.setImageUrls(imageUrls);
             }
-            inquiry.setImageUrls(imageUrls);
+            
+            // 저장
+            Inquiry savedInquiry = inquiryRepository.save(inquiry);
+            log.info("Successfully saved inquiry to database");
+            return convertToDTO(savedInquiry);
+        } catch (Exception e) {
+            log.error("Error in createInquiry: ", e);
+            throw e;
         }
-        
-        // 저장
-        Inquiry savedInquiry = inquiryRepository.save(inquiry);
-        return convertToDTO(savedInquiry);
     }
 
     @Transactional
