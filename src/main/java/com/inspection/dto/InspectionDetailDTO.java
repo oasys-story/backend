@@ -42,6 +42,23 @@ public class InspectionDetailDTO {
     private Character internalWiring;
     private Character generator;
     private Character otherEquipment;
+
+    // 점검 내역 필드 (고압설비)
+    private Character aerialLine;      // 가공전선로
+    private Character undergroundWireLine; // 지중전선로
+    private Character powerSwitch;        // 수배전용 개폐기
+    private Character busbar;             // 배선(모선)
+    private Character lightningArrester;  // 피뢰기
+    private Character transformer;        // 변성기
+    private Character powerFuse;         // 전력 퓨즈
+    private Character powerTransformer;  // 변압기
+    private Character incomingPanel; // 수배전반
+    private Character relay;            // 계전기류
+    private Character circuitBreaker;   // 차단기류
+    private Character powerCapacitor;   // 전력용 콘덴서
+    private Character protectionEquipment; // 보호설비
+    private Character loadEquipment;     // 부하 설비
+    private Character groundingSystem;   // 접지 설비
     
     // 측정개소
     private String measurements;  // JSON 문자열

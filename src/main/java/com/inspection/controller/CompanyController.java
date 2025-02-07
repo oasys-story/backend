@@ -20,7 +20,6 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/companies")
-@CrossOrigin(origins = "http://localhost:3001")
 @RequiredArgsConstructor
 public class CompanyController {
     private final CompanyService companyService;

@@ -82,7 +82,26 @@ public class InspectionService {
             inspection.setInternalWiring(dto.getInternalWiring());
             inspection.setGenerator(dto.getGenerator());
             inspection.setOtherEquipment(dto.getOtherEquipment());
+
+            // 고압설비 업데이트
+            inspection.setAerialLine(dto.getAerialLine());
+            inspection.setUndergroundWireLine(dto.getUndergroundWireLine());
+            inspection.setPowerSwitch(dto.getPowerSwitch());
+            inspection.setBusbar(dto.getBusbar());
+            inspection.setLightningArrester(dto.getLightningArrester());
+            inspection.setTransformer(dto.getTransformer());
+            inspection.setPowerFuse(dto.getPowerFuse());
+            inspection.setPowerTransformer(dto.getPowerTransformer());
+            inspection.setIncomingPanel(dto.getIncomingPanel());
+            inspection.setRelay(dto.getRelay());
+            inspection.setCircuitBreaker(dto.getCircuitBreaker());
+            inspection.setPowerCapacitor(dto.getPowerCapacitor());
+            inspection.setProtectionEquipment(dto.getProtectionEquipment());
+            inspection.setLoadEquipment(dto.getLoadEquipment());
+            inspection.setGroundingSystem(dto.getGroundingSystem());
             
+            
+
             // measurements를 JSON 문자열로 변환
             if (dto.getMeasurements() != null) {
                 String measurementsJson = new ObjectMapper().writeValueAsString(dto.getMeasurements());
@@ -165,6 +184,26 @@ public class InspectionService {
             detailDTO.setInternalWiring(inspection.getInternalWiring());
             detailDTO.setGenerator(inspection.getGenerator());
             detailDTO.setOtherEquipment(inspection.getOtherEquipment());
+
+            // 고압설비
+            detailDTO.setAerialLine(inspection.getAerialLine());
+            detailDTO.setUndergroundWireLine(inspection.getUndergroundWireLine());
+            detailDTO.setPowerSwitch(inspection.getPowerSwitch());
+            detailDTO.setBusbar(inspection.getBusbar());
+            detailDTO.setLightningArrester(inspection.getLightningArrester());
+            detailDTO.setTransformer(inspection.getTransformer());
+            detailDTO.setPowerFuse(inspection.getPowerFuse());
+            detailDTO.setPowerTransformer(inspection.getPowerTransformer());
+            detailDTO.setIncomingPanel(inspection.getIncomingPanel());
+            detailDTO.setRelay(inspection.getRelay());
+            detailDTO.setCircuitBreaker(inspection.getCircuitBreaker());    
+            detailDTO.setPowerCapacitor(inspection.getPowerCapacitor());
+            detailDTO.setProtectionEquipment(inspection.getProtectionEquipment());
+            detailDTO.setLoadEquipment(inspection.getLoadEquipment());
+            detailDTO.setGroundingSystem(inspection.getGroundingSystem());
+
+            
+
             
             // 측정개소
             detailDTO.setMeasurements(inspection.getMeasurements());
@@ -214,13 +253,16 @@ public class InspectionService {
         return inspectionRepository.findAll(pageable)
             .map(inspection -> {
                 InspectionBoardDTO dto = new InspectionBoardDTO();
-                dto.setInspectionId(inspection.getInspectionId());
-                dto.setCompanyName(inspection.getCompany().getCompanyName());  // 업체명 직접 가져오기
-                dto.setInspectionDate(inspection.getInspectionDate());
-                dto.setManagerName(inspection.getManagerName());
+                dto.setInspectionId(inspection.getInspectionId()); // 점검 id
+                dto.setCompanyId(inspection.getCompany().getCompanyId()); //업체 id
+                dto.setCompanyName(inspection.getCompany().getCompanyName());  // 업체명 
+                dto.setInspectionDate(inspection.getInspectionDate()); // 점검일
+                dto.setManagerName(inspection.getManagerName()); // 담당자명
                 return dto;
+
             });
     }
+
 
     // 업체별 점검 내역 조회 메서드 추가
     @Transactional(readOnly = true)
@@ -292,6 +334,25 @@ public class InspectionService {
             inspection.setGenerator(updateData.getGenerator());
             inspection.setOtherEquipment(updateData.getOtherEquipment());
 
+            // 고압설비 업데이트
+            inspection.setAerialLine(updateData.getAerialLine());
+            inspection.setUndergroundWireLine(updateData.getUndergroundWireLine());
+            inspection.setPowerSwitch(updateData.getPowerSwitch());
+            inspection.setBusbar(updateData.getBusbar());
+            inspection.setLightningArrester(updateData.getLightningArrester());
+            inspection.setTransformer(updateData.getTransformer());
+            inspection.setPowerFuse(updateData.getPowerFuse());
+            inspection.setPowerTransformer(updateData.getPowerTransformer());
+            inspection.setIncomingPanel(updateData.getIncomingPanel());
+            inspection.setRelay(updateData.getRelay());
+            inspection.setCircuitBreaker(updateData.getCircuitBreaker());
+            inspection.setPowerCapacitor(updateData.getPowerCapacitor());
+            inspection.setProtectionEquipment(updateData.getProtectionEquipment());
+            inspection.setLoadEquipment(updateData.getLoadEquipment());
+            inspection.setGroundingSystem(updateData.getGroundingSystem());
+            
+
+
             // 측정개소 업데이트
             if (updateData.getMeasurements() != null) {
                 String measurementsJson = new ObjectMapper().writeValueAsString(updateData.getMeasurements());
@@ -348,5 +409,23 @@ public class InspectionService {
         } catch (IOException e) {
             log.error("이미지 파일 삭제 실패: {}", e.getMessage());
         }
+    }
+
+    public Page<InspectionBoardDTO> getInspectionsByCompany(Long companyId, Pageable pageable) {
+        // 회사 존재 여부 확인
+        Company company = companyRepository.findById(companyId)
+            .orElseThrow(() -> new RuntimeException("회사를 찾을 수 없습니다."));
+
+        // 페이징된 점검 결과 조회
+        Page<Inspection> inspections = inspectionRepository.findByCompany_CompanyId(companyId, pageable);
+        
+        // DTO로 변환
+        return inspections.map(inspection -> new InspectionBoardDTO(
+            inspection.getInspectionId(),
+            inspection.getCompany().getCompanyName(),
+            inspection.getInspectionDate(),
+            inspection.getManagerName(),
+            inspection.getCompany().getCompanyId()
+        ));
     }
 } 

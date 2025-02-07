@@ -9,7 +9,6 @@ import com.inspection.dto.FireSafetyInspectionUpdateDTO;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.UUID;
 import java.nio.file.Files;
 import java.nio.file.Path;

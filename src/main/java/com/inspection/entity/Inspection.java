@@ -12,9 +12,11 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter @Setter
+@NoArgsConstructor
 public class Inspection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,7 +43,7 @@ public class Inspection {
     private String inspectionType;              // 점검종별
     private Integer inspectionCount;            // 점검횟수
     
-    // 점검 내역 필드들
+    // 점검 내역 필드 (저압설비)
     private Character wiringInlet;           // 인입구 배선
     private Character distributionPanel;     // 배*분전반
     private Character moldedCaseBreaker;     // 배선용 차단기
@@ -57,6 +59,23 @@ public class Inspection {
     private Character internalWiring;        // 구내배선
     private Character generator;             // 발전기
     private Character otherEquipment;        // 기타설비
+
+    // 점검 내역 필드 (고압설비)
+    private Character aerialLine;      // 가공전선로
+    private Character undergroundWireLine; // 지중전선로
+    private Character powerSwitch;        // 수배전용 개폐기
+    private Character busbar;             // 배선(모선)
+    private Character lightningArrester;  // 피뢰기
+    private Character transformer;        // 변성기
+    private Character powerFuse;         // 전력 퓨즈
+    private Character powerTransformer;  // 변압기
+    private Character incomingPanel; // 수배전반
+    private Character relay;            // 계전기류
+    private Character circuitBreaker;   // 차단기류
+    private Character powerCapacitor;   // 전력용 콘덴서
+    private Character protectionEquipment; // 보호설비
+    private Character loadEquipment;     // 부하 설비
+    private Character groundingSystem;   // 접지 설비
     
     // 측정개소 필드들 (JSON으로 저장)
     @Column(columnDefinition = "JSON")
@@ -77,4 +96,6 @@ public class Inspection {
     
     @Column(columnDefinition = "JSON")
     private String images;    // 첨부 이미지 파일명들을 JSON 배열로 저장
+
+
 } 

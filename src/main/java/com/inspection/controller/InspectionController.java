@@ -12,11 +12,8 @@ import java.util.UUID;
 import java.util.Set;
 import java.util.LinkedHashSet;
 
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,10 +37,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.inspection.dto.InspectionBoardDTO;
 import com.inspection.dto.InspectionCreateDTO;
 import com.inspection.dto.InspectionDetailDTO;
-import com.inspection.dto.InspectionListDTO;
 import com.inspection.exception.InspectionNotFoundException;
 import com.inspection.service.InspectionService;
-import com.inspection.service.PdfService;
 import com.inspection.service.UserService;
 import com.inspection.entity.User;
 
@@ -52,12 +47,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/inspections")
-@CrossOrigin(origins = "http://localhost:3001")
 @RequiredArgsConstructor
 @Slf4j
 public class InspectionController {
     private final InspectionService inspectionService;
-    private final PdfService pdfService;
     private final UserService userService;
     
     /* 점검 내용 저장 */
@@ -128,37 +121,13 @@ public class InspectionController {
         }
     }
 
-    /* SMS 전송 (개발 전) */ 
-    // @PostMapping("/{id}/send-sms")
-    // public ResponseEntity<String> sendSmsReport(
-    //     @PathVariable Long id,
-    //     @RequestParam String phoneNumber
-    // ) {
-    //     try {
-    //         InspectionDetailDTO inspection = inspectionService.getInspectionDetail(id);
-    //         String message = String.format("""
-    //             [전기설비 점검 결과]
-    //             설비명: %s
-    //             점검일자: %s
-    //             점검자: %s
-    //             자세한 내용은 웹에서 확인해주세요.""",
-    //             inspection.getFacilityName(),
-    //             inspection.getInspectionDate(),
-    //             inspection.getManagerName()
-    //         );
-            
-    //         smsService.sendSms(phoneNumber, message);
-    //         return ResponseEntity.ok().build();
-    //     } catch (Exception e) {
-    //         log.error("SMS 전송 실패: {}", e.getMessage());
-    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-    //             .body("SMS 전송에 실패했습니다: " + e.getMessage());
-    //     }
-    // }
 
     @GetMapping("/company/{companyId}")
-    public ResponseEntity<List<InspectionListDTO>> getInspectionsByCompany(@PathVariable Long companyId) {
-        List<InspectionListDTO> inspections = inspectionService.getInspectionsByCompany(companyId);
+    public ResponseEntity<Page<InspectionBoardDTO>> getInspectionsByCompany(
+        @PathVariable Long companyId, 
+        Pageable pageable
+    ) {
+        Page<InspectionBoardDTO> inspections = inspectionService.getInspectionsByCompany(companyId, pageable);
         return ResponseEntity.ok(inspections);
     }
 
@@ -172,21 +141,21 @@ public class InspectionController {
         return inspectionService.saveManagerSignature(id, signature);
     }
 
-    @GetMapping("/{id}/pdf")
-    public ResponseEntity<Resource> downloadPdf(@PathVariable Long id) {
-        try {
-            byte[] pdfBytes = pdfService.generateInspectionPdf(id);
-            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
+    // @GetMapping("/{id}/pdf")
+    // public ResponseEntity<Resource> downloadPdf(@PathVariable Long id) {
+    //     try {
+    //         byte[] pdfBytes = pdfService.generateInspectionPdf(id);
+    //         ByteArrayResource resource = new ByteArrayResource(pdfBytes);
             
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, 
-                    "attachment; filename=inspection_" + id + ".pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(resource);
-        } catch (Exception e) {
-            throw new RuntimeException("PDF 다운로드 중 오류 발생", e);
-        }
-    }
+    //         return ResponseEntity.ok()
+    //             .header(HttpHeaders.CONTENT_DISPOSITION, 
+    //                 "attachment; filename=inspection_" + id + ".pdf")
+    //             .contentType(MediaType.APPLICATION_PDF)
+    //             .body(resource);
+    //     } catch (Exception e) {
+    //         throw new RuntimeException("PDF 다운로드 중 오류 발생", e);
+    //     }
+    // }
 
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

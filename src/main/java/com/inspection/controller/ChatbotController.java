@@ -25,7 +25,6 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/chat")
-@CrossOrigin(origins = "http://localhost:3001")
 @RequiredArgsConstructor
 public class ChatbotController {
     private final ChatbotService chatbotService;

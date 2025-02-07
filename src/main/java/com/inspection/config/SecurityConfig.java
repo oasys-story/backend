@@ -63,7 +63,9 @@ public class SecurityConfig {
                     "/api/notices/**",
                     "/api/inquiries/**",
                     "/uploads/**",
-                    "/api/stt/**"
+                    "/api/stt/**",
+                    "/api/fire-inspections/**",
+                    "/api/fire-safety-inspections/**"
                 ).permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/manager/**").hasRole("MANAGER")
@@ -72,6 +74,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").authenticated()
                 .requestMatchers("/api/inspections/**").authenticated()
                 .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/users/check/**").permitAll()
+                .requestMatchers("/api/inspections/{id}").permitAll()
+                .requestMatchers("/api/fire-safety-inspections/{id}").permitAll()
+                .requestMatchers("/fire-safety-inspection/**").permitAll()
+                .requestMatchers("/inspection/**").permitAll()
                 .requestMatchers("/api/chat/**").permitAll()
                 .requestMatchers("/api/chat/qa/**").authenticated()
                 .anyRequest().authenticated()

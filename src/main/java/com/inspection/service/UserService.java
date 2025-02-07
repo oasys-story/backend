@@ -177,4 +177,31 @@ public class UserService implements UserDetailsService {
         return dto;
     }
 
+
+    @Transactional
+    public void updatePassword(Long userId, String currentPassword, String newPassword) {
+        log.info("비밀번호 변경 시도 - userId: {}", userId);
+        
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. ID: " + userId));
+        
+        log.info("사용자 조회 성공 - username: {}", user.getUsername());
+
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            log.error("현재 비밀번호 불일치 - userId: {}", userId);
+            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        log.info("현재 비밀번호 검증 성공");
+
+        // 새 비밀번호 암호화 후 저장
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+        
+        log.info("비밀번호 변경 완료 - userId: {}", userId);
+    }
+
+
 } 

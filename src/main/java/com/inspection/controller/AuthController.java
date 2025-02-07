@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.Map;
 
 import com.inspection.dto.LoginRequest;
 import com.inspection.dto.LoginResponse;
@@ -61,22 +62,54 @@ public class AuthController {
         return ResponseEntity.ok("사용 가능한 아이디입니다.");
     }
 
-    /* 로그인 */
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                loginRequest.getUsername(), 
-                loginRequest.getPassword()
-            )
-        );
+    // /* 로그인 */
+    // @PostMapping("/login")
+    // public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    //     Authentication authentication = authenticationManager.authenticate(
+    //         new UsernamePasswordAuthenticationToken(
+    //             loginRequest.getUsername(), 
+    //             loginRequest.getPassword()
+    //         )
+    //     );
 
-        String token = tokenProvider.generateToken(authentication);
-        UserResponseDTO userResponse = userService.getCurrentUserDTO(loginRequest.getUsername());
+    //     String token = tokenProvider.generateToken(authentication);
+    //     UserResponseDTO userResponse = userService.getCurrentUserDTO(loginRequest.getUsername());
         
-        return ResponseEntity.ok(new LoginResponse(token, userResponse));
-    }
+    //     return ResponseEntity.ok(new LoginResponse(token, userResponse));
+    // }
 
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            // 1️ 아이디 존재 여부 확인
+            if (!userService.existsByUsername(loginRequest.getUsername())) {
+                return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("success", false, "message", "존재하지 않는 사용자입니다."));
+            }
+
+            // 2️ 인증 시도 
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    loginRequest.getUsername(), 
+                    loginRequest.getPassword()
+                )
+            );
+
+            // 3️ JWT 토큰 발급
+            String token = tokenProvider.generateToken(authentication);
+            UserResponseDTO userResponse = userService.getCurrentUserDTO(loginRequest.getUsername());
+
+            return ResponseEntity.ok(new LoginResponse(token, userResponse));
+
+        } catch (Exception e) {
+            // 4️ 비밀번호가 틀린 경우
+            return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("success", false, "message", "비밀번호가 틀렸습니다."));
+        }
+    }
 
 
     /* 로그아웃 */

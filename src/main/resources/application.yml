@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:mysql://localhost:3306/inspection_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: jeonghyun
+    password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   servlet:
@@ -22,15 +22,20 @@ spring:
 server:
   port: 8080
 
-
 jwt:
-  secret: ${JWT_SECRET_KEY}
+  secret: uT8/QQ8EcgteqZPnWvxjYTBOyJlfxg/9HN+kXtZpiso=
   expiration-time: 86400000  
+
 
 clova:
   speech:
-    secret: ${CLOVA_SECRET_KEY}
-    invoke-url: ${CLOVA_API_URL}
+    secret: 61071c2878b94eb3a4a480d3fd67977e
+    invoke-url: https://clovaspeech-gw.ncloud.com/external/v1/10245/f46d355eaf987449386450a119f4f31c4b2539698ce32afa2848ea28c408c7aa
+
 
 encryption:
-  key: ${ENCRYPTION_KEY}
+  key: "abcdefghijklmnopqrstuvwxyz123456"
+
+eon:
+  license-key: "HEKaq1o47lgVravbPKRVSZvixUFderNeTv4EmpPMuqo="
+  sender-phone: "07088580840"
